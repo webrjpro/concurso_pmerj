@@ -1,0 +1,513 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  STUDENT
+  ADMIN
+}
+
+enum TopicStatus {
+  NAO_INICIADO
+  ESTUDANDO
+  REVISANDO
+  DOMINADO
+}
+
+enum Difficulty {
+  FACIL
+  MEDIA
+  DIFICIL
+}
+
+enum ErrorReason {
+  CONTEUDO
+  ATENCAO
+  PEGADINHA
+  CALCULO
+  LEITURA
+  DESCONHECIDO
+}
+
+enum ReviewType {
+  TOPICO
+  QUESTAO
+  FLASHCARD
+  ERRO
+}
+
+enum ReviewResult {
+  PENDENTE
+  FACIL
+  MEDIO
+  DIFICIL
+  ERREI
+}
+
+enum SimulationType {
+  COMPLETO
+  MATERIA
+  ASSUNTO
+  ASSUNTOS_FRACOS
+  QUESTOES_ERRADAS
+  CRONOMETRADO
+}
+
+enum StudyTaskType {
+  ESTUDO_NOVO
+  QUESTOES
+  REVISAO
+  SIMULADO
+  CORRECAO
+  REFORCO_ERROS
+}
+
+enum StudyPlanStatus {
+  ATIVO
+  CONCLUIDO
+  PAUSADO
+}
+
+model User {
+  id               String                   @id @default(cuid())
+  name             String
+  email            String                   @unique
+  passwordHash     String?
+  role             UserRole                 @default(STUDENT)
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  profile          StudentProfile?
+  attempts         StudentAttempt[]
+  errors           ErrorNotebookEntry[]
+  flashcards       Flashcard[]
+  reviews          ReviewSchedule[]
+  studyPlans       StudyPlan[]
+  studySessions    StudySession[]
+  subjectProgress  StudentSubjectProgress[]
+  topicProgress    StudentTopicProgress[]
+  generalProgress  GeneralProgress?
+  simulationResults SimulationResult[]
+  aiGenerations    AiGeneration[]
+  essaySubmissions EssaySubmission[]
+}
+
+model StudentProfile {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dailyMinutes      Int       @default(90)
+  beginnerMode      Boolean   @default(true)
+  currentLevel      Int       @default(1)
+  streakDays        Int       @default(0)
+  totalStudyMinutes Int       @default(0)
+  targetScore       Int       @default(80)
+  examDate          DateTime?
+  notes             String?
+}
+
+model Subject {
+  id              String                   @id @default(cuid())
+  slug            String                   @unique
+  name            String
+  shortName       String
+  description     String
+  questionCount   Int                      @default(10)
+  pointValue      Int                      @default(20)
+  priorityWeight  Int                      @default(100)
+  order           Int
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  topics          EdictalTopic[]
+  lessons         Lesson[]
+  summaries       Summary[]
+  questions       Question[]
+  flashcards      Flashcard[]
+  studySessions   StudySession[]
+  studyTasks      StudyTask[]
+  reviews         ReviewSchedule[]
+  errors          ErrorNotebookEntry[]
+  subjectProgress StudentSubjectProgress[]
+}
+
+model EdictalTopic {
+  id             String                 @id @default(cuid())
+  subjectId      String
+  subject        Subject                @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  parentId       String?
+  parent         EdictalTopic?          @relation("TopicTree", fields: [parentId], references: [id])
+  children       EdictalTopic[]         @relation("TopicTree")
+  code           String?
+  title          String
+  description    String?
+  priorityWeight Int                    @default(50)
+  order          Int
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  lessons        Lesson[]
+  summaries      Summary[]
+  questions      Question[]
+  flashcards     Flashcard[]
+  reviews        ReviewSchedule[]
+  studySessions  StudySession[]
+  studyTasks     StudyTask[]
+  errors         ErrorNotebookEntry[]
+  topicProgress  StudentTopicProgress[]
+
+  @@unique([subjectId, title])
+}
+
+model Lesson {
+  id              String        @id @default(cuid())
+  subjectId       String
+  subject         Subject       @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  topicId         String
+  topic           EdictalTopic  @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  title           String
+  level           Int           @default(1)
+  durationMinutes Int           @default(30)
+  content         String
+  order           Int
+  createdAt       DateTime      @default(now())
+  summaries       Summary[]
+  studySessions   StudySession[]
+}
+
+model Summary {
+  id        String       @id @default(cuid())
+  subjectId String
+  subject   Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  topicId   String
+  topic     EdictalTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  lessonId  String?
+  lesson    Lesson?      @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  title     String
+  content   String
+  onePage   Boolean      @default(true)
+  createdAt DateTime     @default(now())
+}
+
+model Question {
+  id                 String               @id @default(cuid())
+  subjectId          String
+  subject            Subject              @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  topicId            String
+  topic              EdictalTopic         @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  sourceDocumentId   String?
+  sourceDocument     SourceDocument?      @relation(fields: [sourceDocumentId], references: [id], onDelete: SetNull)
+  examNumber         Int?
+  statement          String
+  difficulty         Difficulty           @default(MEDIA)
+  explanation        String
+  correctExplanation String
+  wrongExplanation   String
+  trap               String?
+  reviewConcept      String
+  active             Boolean              @default(true)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  options            QuestionOption[]
+  answerKey          AnswerKey?
+  attempts           StudentAttempt[]
+  errors             ErrorNotebookEntry[]
+  flashcards         Flashcard[]
+  simulationLinks    SimulationQuestion[]
+}
+
+model QuestionOption {
+  id          String           @id @default(cuid())
+  questionId  String
+  question    Question         @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  label       String
+  text        String
+  isCorrect   Boolean          @default(false)
+  explanation String
+  attempts    StudentAttempt[]
+
+  @@unique([questionId, label])
+}
+
+model AnswerKey {
+  id           String   @id @default(cuid())
+  questionId   String   @unique
+  question     Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  correctLabel String
+  source       String
+  note         String?
+}
+
+model StudentAttempt {
+  id                 String              @id @default(cuid())
+  userId             String
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questionId         String
+  question           Question            @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOptionId   String?
+  selectedOption     QuestionOption?     @relation(fields: [selectedOptionId], references: [id], onDelete: SetNull)
+  selectedLabel      String?
+  isCorrect          Boolean
+  confidence         Int                 @default(3)
+  timeSpentSeconds   Int                 @default(0)
+  createdAt          DateTime            @default(now())
+  simulationResultId String?
+  simulationResult   SimulationResult?   @relation(fields: [simulationResultId], references: [id], onDelete: SetNull)
+  errorEntry         ErrorNotebookEntry?
+}
+
+model ErrorNotebookEntry {
+  id                    String          @id @default(cuid())
+  userId                String
+  user                  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questionId            String
+  question              Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  subjectId             String
+  subject               Subject         @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  topicId               String
+  topic                 EdictalTopic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  attemptId             String?         @unique
+  attempt               StudentAttempt? @relation(fields: [attemptId], references: [id], onDelete: SetNull)
+  reason                ErrorReason     @default(DESCONHECIDO)
+  contentGap            Boolean         @default(false)
+  attentionGap          Boolean         @default(false)
+  trapFall              Boolean         @default(false)
+  simplifiedExplanation String
+  mandatoryReview       Boolean         @default(true)
+  nextReviewAt          DateTime
+  createdAt             DateTime        @default(now())
+  flashcard             Flashcard?
+}
+
+model Flashcard {
+  id             String              @id @default(cuid())
+  userId         String?
+  user           User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjectId      String
+  subject        Subject             @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  topicId        String
+  topic          EdictalTopic        @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  questionId     String?
+  question       Question?           @relation(fields: [questionId], references: [id], onDelete: SetNull)
+  errorEntryId   String?             @unique
+  errorEntry     ErrorNotebookEntry? @relation(fields: [errorEntryId], references: [id], onDelete: SetNull)
+  front          String
+  back           String
+  difficulty     Difficulty          @default(MEDIA)
+  nextReviewAt   DateTime
+  intervalDays   Int                 @default(1)
+  easeFactor     Float               @default(2.5)
+  correctCount   Int                 @default(0)
+  wrongCount     Int                 @default(0)
+  source         String              @default("manual")
+  createdAt      DateTime            @default(now())
+  reviews        ReviewSchedule[]
+}
+
+model ReviewSchedule {
+  id           String        @id @default(cuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjectId    String?
+  subject      Subject?      @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  topicId      String?
+  topic        EdictalTopic? @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  flashcardId  String?
+  flashcard    Flashcard?    @relation(fields: [flashcardId], references: [id], onDelete: SetNull)
+  type         ReviewType
+  scheduledFor DateTime
+  completedAt  DateTime?
+  result       ReviewResult  @default(PENDENTE)
+  notes        String?
+  createdAt    DateTime      @default(now())
+}
+
+model Simulation {
+  id               String               @id @default(cuid())
+  title            String
+  type             SimulationType
+  timeLimitMinutes Int                  @default(240)
+  totalQuestions   Int                  @default(50)
+  subjectId        String?
+  topicId          String?
+  createdAt        DateTime             @default(now())
+  questions        SimulationQuestion[]
+  results          SimulationResult[]
+}
+
+model SimulationQuestion {
+  id           String     @id @default(cuid())
+  simulationId String
+  simulation   Simulation @relation(fields: [simulationId], references: [id], onDelete: Cascade)
+  questionId   String
+  question     Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  order        Int
+
+  @@unique([simulationId, questionId])
+}
+
+model SimulationResult {
+  id                String           @id @default(cuid())
+  userId            String
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  simulationId      String
+  simulation        Simulation       @relation(fields: [simulationId], references: [id], onDelete: Cascade)
+  startedAt         DateTime         @default(now())
+  completedAt       DateTime?
+  score             Float            @default(0)
+  correctCount      Int              @default(0)
+  wrongCount        Int              @default(0)
+  timeSpentSeconds  Int              @default(0)
+  diagnosis         String?
+  nextSevenDaysPlan String?
+  attempts          StudentAttempt[]
+}
+
+model StudyPlan {
+  id        String          @id @default(cuid())
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  startDate DateTime
+  endDate   DateTime
+  status    StudyPlanStatus @default(ATIVO)
+  createdAt DateTime        @default(now())
+  tasks     StudyTask[]
+}
+
+model StudyTask {
+  id              String        @id @default(cuid())
+  studyPlanId     String
+  studyPlan       StudyPlan     @relation(fields: [studyPlanId], references: [id], onDelete: Cascade)
+  subjectId       String?
+  subject         Subject?      @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  topicId         String?
+  topic           EdictalTopic? @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  type            StudyTaskType
+  title           String
+  rationale       String
+  scheduledFor    DateTime
+  durationMinutes Int
+  completedAt     DateTime?
+}
+
+model StudySession {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjectId String
+  subject   Subject       @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  topicId   String?
+  topic     EdictalTopic? @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  lessonId  String?
+  lesson    Lesson?       @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  startedAt DateTime
+  endedAt   DateTime?
+  minutes   Int
+  notes     String?
+}
+
+model GeneralProgress {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  editalPercent      Int      @default(0)
+  overallAccuracy    Int      @default(0)
+  questionsDone      Int      @default(0)
+  simulationsDone    Int      @default(0)
+  studyMinutes       Int      @default(0)
+  pendingReviews     Int      @default(0)
+  persistentWeakness String?
+  strongPoints       String?
+  updatedAt          DateTime @updatedAt
+}
+
+model StudentSubjectProgress {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjectId     String
+  subject       Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  status        TopicStatus @default(NAO_INICIADO)
+  progress      Int         @default(0)
+  mastery       Int         @default(0)
+  accuracy      Int         @default(0)
+  questionsDone Int         @default(0)
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([userId, subjectId])
+}
+
+model StudentTopicProgress {
+  id            String       @id @default(cuid())
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topicId       String
+  topic         EdictalTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  status        TopicStatus  @default(NAO_INICIADO)
+  mastery       Int          @default(0)
+  accuracy      Int          @default(0)
+  questionsDone Int          @default(0)
+  nextReviewAt  DateTime?
+  updatedAt     DateTime     @updatedAt
+
+  @@unique([userId, topicId])
+}
+
+model SourceDocument {
+  id          String     @id @default(cuid())
+  title       String
+  kind        String
+  fileName    String
+  importedAt  DateTime   @default(now())
+  description String?
+  questions   Question[]
+}
+
+model AiGeneration {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  subjectId String?
+  topicId   String?
+  type      String
+  prompt    String
+  output    String
+  createdAt DateTime @default(now())
+}
+
+model EssayPrompt {
+  id          String            @id @default(cuid())
+  title       String
+  theme       String
+  category    String
+  source      String
+  statement   String
+  supportText String?
+  active      Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  submissions EssaySubmission[]
+}
+
+model EssaySubmission {
+  id              String      @id @default(cuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  promptId        String
+  prompt          EssayPrompt @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  content         String
+  lineCount       Int
+  score           Int
+  formalScore     Int
+  textualScore    Int
+  technicalScore  Int
+  strengths       String
+  weaknesses      String
+  actionPlan      String
+  correctionJson  String
+  aiProvider      String
+  aiModel         String
+  createdAt       DateTime    @default(now())
+}

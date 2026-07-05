@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 
-const demoEmail = "aluno@pmerj.local";
+const demoEmail = "carlos.piquet2016@gmail.com";
 
 export async function getPerformanceDashboard() {
   const user = await prisma.user.findUnique({
@@ -45,17 +45,17 @@ export async function getPerformanceDashboard() {
   });
 
   const weeklyEvolution = [
-    { label: "Sem 1", value: Math.max(10, user.generalProgress.editalPercent - 12) },
-    { label: "Sem 2", value: Math.max(15, user.generalProgress.editalPercent - 8) },
-    { label: "Sem 3", value: Math.max(20, user.generalProgress.editalPercent - 4) },
+    { label: "Sem 1", value: Math.max(0, user.generalProgress.editalPercent - 12) },
+    { label: "Sem 2", value: Math.max(0, user.generalProgress.editalPercent - 8) },
+    { label: "Sem 3", value: Math.max(0, user.generalProgress.editalPercent - 4) },
     { label: "Atual", value: user.generalProgress.editalPercent }
   ];
   const monthlyEvolution = [
-    { label: "Mes 1", value: Math.max(20, user.generalProgress.overallAccuracy - 10) },
-    { label: "Mes 2", value: Math.max(35, user.generalProgress.overallAccuracy - 5) },
+    { label: "Mes 1", value: Math.max(0, user.generalProgress.overallAccuracy - 10) },
+    { label: "Mes 2", value: Math.max(0, user.generalProgress.overallAccuracy - 5) },
     { label: "Atual", value: user.generalProgress.overallAccuracy }
   ];
-  const projection = Math.min(100, user.generalProgress.editalPercent + 18);
+  const projection = Math.min(100, user.generalProgress.editalPercent + (user.generalProgress.editalPercent > 0 ? 18 : 0));
 
   return {
     totals: {

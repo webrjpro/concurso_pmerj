@@ -1,3 +1,4 @@
+import { getCurrentUser } from "@/lib/auth";
 import Groq from "groq-sdk";
 import { NextResponse } from "next/server";
 import { essayRules } from "@/lib/essay";
@@ -6,7 +7,6 @@ import { errorResponse, getClientIp, rateLimiter, sanitizeText, validateCuid, LI
 
 export const runtime = "nodejs";
 
-const demoEmail = "aluno@pmerj.local";
 
 type Correction = {
   score: number;
@@ -117,7 +117,7 @@ export async function POST(request: Request) {
   }
 
   const [user, prompt] = await Promise.all([
-    prisma.user.findUnique({ where: { email: demoEmail } }),
+    prisma.user.findUnique({ where: { id: (await getCurrentUser())?.id || "" } }),
     prisma.essayPrompt.findUnique({ where: { id: body.promptId } })
   ]);
 

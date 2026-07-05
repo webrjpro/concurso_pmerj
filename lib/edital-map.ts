@@ -1,6 +1,6 @@
+import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-const demoEmail = "aluno@pmerj.local";
 
 function statusToUi(status?: string) {
   const map = {
@@ -21,7 +21,7 @@ function priorityLabel(weight: number) {
 
 export async function getEditalMap() {
   const user = await prisma.user.findUnique({
-    where: { email: demoEmail },
+    where: { id: (await getCurrentUser())?.id || "" },
     select: { id: true }
   });
 

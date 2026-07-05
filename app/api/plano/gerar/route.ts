@@ -1,8 +1,8 @@
+import { getCurrentUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, getClientIp, rateLimiter, LIMITS } from "@/lib/security";
 
-const demoEmail = "aluno@pmerj.local";
 
 function addDays(days: number) {
   return new Date(Date.now() + days * 24 * 60 * 60 * 1000);
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   const dailyMinutes = Math.max(30, Math.min(360, body.dailyMinutes ?? 120));
   const days = Math.max(3, Math.min(30, body.days ?? 7));
 
-  const user = await prisma.user.findUnique({ where: { email: demoEmail }, include: { profile: true } });
+  const user = await prisma.user.findUnique({ where: { id: (await getCurrentUser())?.id || "" }, include: { profile: true } });
   if (!user) {
     return errorResponse("Aluno demonstracao nao encontrado.", 404);
   }

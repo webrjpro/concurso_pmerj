@@ -1,6 +1,6 @@
+import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-const demoEmail = "aluno@pmerj.local";
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("pt-BR", {
@@ -12,7 +12,7 @@ function formatDate(date: Date) {
 
 export async function getStudyPlanDashboard() {
   const user = await prisma.user.findUnique({
-    where: { email: demoEmail },
+    where: { id: (await getCurrentUser())?.id || "" },
     include: {
       profile: true,
       studyPlans: {

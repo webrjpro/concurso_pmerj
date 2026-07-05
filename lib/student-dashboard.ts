@@ -1,6 +1,6 @@
+import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-const demoEmail = "carlos.piquet2016@gmail.com";
 
 function minutesToHours(minutes: number) {
   const hours = Math.floor(minutes / 60);
@@ -28,7 +28,7 @@ function statusToUi(status: string) {
 
 export async function getStudentDashboard() {
   const user = await prisma.user.findUnique({
-    where: { email: demoEmail },
+    where: { id: (await getCurrentUser())?.id || "" },
     include: {
       profile: true,
       generalProgress: true,

@@ -1,8 +1,8 @@
+import { getCurrentUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, getClientIp, rateLimiter, validateCuid, LIMITS } from "@/lib/security";
 
-const demoEmail = "aluno@pmerj.local";
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
      return errorResponse("IDs invalidos.", 400);
   }
 
-  const user = await prisma.user.findUnique({ where: { email: demoEmail } });
+  const user = await prisma.user.findUnique({ where: { id: (await getCurrentUser())?.id || "" } });
 
   if (!user) {
     return errorResponse("Aluno demonstracao nao encontrado.", 404);

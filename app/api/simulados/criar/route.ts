@@ -1,8 +1,8 @@
+import { getCurrentUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, getClientIp, rateLimiter, sanitizeText, validateCuid, LIMITS } from "@/lib/security";
 
-const demoEmail = "aluno@pmerj.local";
 
 const allowedTypes = [
   "COMPLETO",
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
   const subjectSlug = sanitizeText(body.subjectSlug, LIMITS.MAX_SHORT_TEXT_LENGTH);
 
-  const user = await prisma.user.findUnique({ where: { email: demoEmail } });
+  const user = await prisma.user.findUnique({ where: { id: (await getCurrentUser())?.id || "" } });
   if (!user) {
     return errorResponse("Aluno demonstracao nao encontrado.", 404);
   }

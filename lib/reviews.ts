@@ -1,6 +1,6 @@
+import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-const demoEmail = "aluno@pmerj.local";
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("pt-BR", {
@@ -11,7 +11,7 @@ function formatDate(date: Date) {
 }
 
 export async function getReviewCenter() {
-  const user = await prisma.user.findUnique({ where: { email: demoEmail } });
+  const user = await prisma.user.findUnique({ where: { id: (await getCurrentUser())?.id || "" } });
   if (!user) {
     throw new Error("Aluno demonstracao nao encontrado. Rode npm run db:seed.");
   }

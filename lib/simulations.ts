@@ -1,6 +1,6 @@
+import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-const demoEmail = "aluno@pmerj.local";
 
 function formatSeconds(seconds: number) {
   const minutes = Math.round(seconds / 60);
@@ -11,7 +11,7 @@ function formatSeconds(seconds: number) {
 
 export async function getSimulationsDashboard() {
   const user = await prisma.user.findUnique({
-    where: { email: demoEmail },
+    where: { id: (await getCurrentUser())?.id || "" },
     include: {
       subjectProgress: { include: { subject: true }, orderBy: { subject: { order: "asc" } } },
       simulationResults: {

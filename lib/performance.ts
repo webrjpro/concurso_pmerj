@@ -1,10 +1,10 @@
+import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-const demoEmail = "carlos.piquet2016@gmail.com";
 
 export async function getPerformanceDashboard() {
   const user = await prisma.user.findUnique({
-    where: { email: demoEmail },
+    where: { id: (await getCurrentUser())?.id || "" },
     include: {
       generalProgress: true,
       subjectProgress: { include: { subject: true }, orderBy: { subject: { order: "asc" } } },
